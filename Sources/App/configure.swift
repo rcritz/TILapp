@@ -53,7 +53,7 @@ public func configure(
   services.register(middlewares)
 
   // Configure a database
-  var databases = DatabaseConfig()
+  var databases = DatabasesConfig()
   let hostname = Environment.get("DATABASE_HOSTNAME") ?? "localhost"
   let username = Environment.get("DATABASE_USER") ?? "vapor"
   let databaseName: String
