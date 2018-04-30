@@ -1,8 +1,12 @@
+#// 1
 #set("content") {
-<img src="/images/logo.png" class="mx-auto d-block" alt="TIL Logo" />
-<h1>Acronyms</h1>
+#// 2
+<h1>#(user.name)</h1>
+#// 3
+<h2>#(user.username)</h2>
 
-#if(acronyms) {
+#// 4
+#if(count(acronyms) > 0) {
 <table class="table table-bordered table-hover">
   <thead class="thead-light">
     <tr>
@@ -15,12 +19,12 @@
     </tr>
   </thead>
   <tbody>
+    #// 5
     #for(acronym in acronyms) {
     <tr>
       <td>
         <a href="/acronyms/#(acronym.id)">
-          #(acronym.short)
-        </a>
+          #(acronym.short)</a>
       </td>
       <td>#(acronym.long)</td>
     </tr>
@@ -32,4 +36,5 @@
 }
 }
 
+#// 6
 #embed("base")

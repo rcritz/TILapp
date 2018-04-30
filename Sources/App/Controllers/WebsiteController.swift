@@ -8,6 +8,8 @@ struct WebsiteController: RouteCollection {
     // 3
     router.get(use: indexHandler)
     router.get("acronyms", Acronym.parameter, use: acronymHandler)
+    router.get("users", User.parameter, use: userHandler)
+    router.get("users", use: allUsersHandler)
   }
   
   // 4
@@ -24,24 +26,59 @@ struct WebsiteController: RouteCollection {
           .render("index", context)
     }
   }
-}
+  
+  
+  // 1
+  func acronymHandler(_ req: Request) throws -> Future<View> {
+    // 2
+    return try req.parameters.next(Acronym.self)
+      .flatMap(to: View.self) { acronym in
+        // 3
+        return try acronym.user
+          .get(on: req)
+          .flatMap(to: View.self) { user in
+            // 4
+            let context = AcronymContext(title: acronym.short,
+                                         acronym: acronym,
+                                         user: user)
+            return try req.make(LeafRenderer.self)
+              .render("acronym", context)
+        }
+    }
+  }
+  
+  // 1
+  func userHandler(_ req: Request) throws -> Future<View> {
+    // 2
+    return try req.parameters.next(User.self)
+      .flatMap(to: View.self) { user in
+        // 3
+        return try user.acronyms
+          .query(on: req)
+          .all()
+          .flatMap(to: View.self) { acronyms in
+            // 4
+            let context = UserContext(title: user.name,
+                                      user: user,
+                                      acronyms: acronyms)
+            return try req.make(LeafRenderer.self)
+              .render("user", context)
+        }
+    }
+  }
 
-// 1
-func acronymHandler(_ req: Request) throws -> Future<View> {
-  // 2
-  return try req.parameters.next(Acronym.self)
-    .flatMap(to: View.self) { acronym in
-      // 3
-      return try acronym.user
-        .get(on: req)
-        .flatMap(to: View.self) { user in
-          // 4
-          let context = AcronymContext(title: acronym.short,
-                                       acronym: acronym,
-                                       user: user)
-          return try req.make(LeafRenderer.self)
-            .render("acronym", context)
-      }
+  // 1
+  func allUsersHandler(_ req: Request) throws -> Future<View> {
+    // 2
+    return User.query(on: req)
+      .all()
+      .flatMap(to: View.self) { users in
+        // 3
+        let context = AllUsersContext(title: "All Users",
+                                      users: users)
+        return try req.make(LeafRenderer.self)
+          .render("allUsers", context)
+    }
   }
 }
 
@@ -54,4 +91,15 @@ struct AcronymContext: Encodable {
   let title: String
   let acronym: Acronym
   let user: User
+}
+
+struct UserContext: Encodable {
+  let title: String
+  let user: User
+  let acronyms: [Acronym]
+}
+
+struct AllUsersContext: Encodable {
+  let title: String
+  let users: [User]
 }
