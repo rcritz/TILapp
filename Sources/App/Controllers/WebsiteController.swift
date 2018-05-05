@@ -27,6 +27,7 @@ struct WebsiteController: RouteCollection {
                 use: editAcronymPostHandler)
     router.post("acronyms", Acronym.parameter, "delete",
                 use: deleteAcronymHandler)
+    router.post("categories", Category.parameter, "delete", use: deleteCategoryHandler)
   }
   
   // 4
@@ -274,6 +275,18 @@ struct WebsiteController: RouteCollection {
     -> Future<Response> {
       return try req.parameters.next(Acronym.self).delete(on: req)
         .transform(to: req.redirect(to: "/"))
+  }
+
+  func deleteCategoryHandler(_ req: Request) throws -> Future<Response> {
+    return try req.parameters.next(Category.self).flatMap(to: Response.self) { category in
+      return try AcronymCategoryPivot.query(on: req)
+        .filter(\.categoryID == category.id)
+        .delete()
+        .flatMap(to: Response.self) {
+          category.delete(on: req)
+            .transform(to: req.redirect(to: "/categories"))
+      }
+    }
   }
 }
 

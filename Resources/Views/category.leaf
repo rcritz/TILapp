@@ -29,6 +29,10 @@
 } else {
 <h2>There aren't any acronyms yet!</h2>
 }
+<form method="post" action="/categories/#(category.id)/delete">
+#// 2
+<input class="btn btn-danger" type="submit" value="Delete" />
+</form>
 }
 
 #embed("base")
