@@ -241,10 +241,10 @@ struct WebsiteController: RouteCollection {
                                   var categoryResults: [Future<Void>] = []
                                   // 8
                                   for newCategory in categoriesToAdd {
-                                    let result = try Category.addCategory(newCategory,
-                                                                          to: acronym,
-                                                                          on: req)
-                                    categoryResults.append(result)
+                                    categoryResults.append(
+                                      try Category.addCategory(newCategory,
+                                                               to: acronym,
+                                                               on: req))
                                   }
                                   
                                   // 9
@@ -255,12 +255,12 @@ struct WebsiteController: RouteCollection {
                                     }
                                     // 11
                                     if let category = categoryToRemove {
-                                      let pivotDelete
-                                        = try AcronymCategoryPivot.query(on: req)
+                                      categoryResults.append(
+                                        try AcronymCategoryPivot
+                                          .query(on: req)
                                           .filter(\.acronymID == acronym.requireID())
                                           .filter(\.categoryID == category.requireID())
-                                          .delete()
-                                      categoryResults.append(pivotDelete)
+                                          .delete())
                                     }
                                   }
                                   // 12
