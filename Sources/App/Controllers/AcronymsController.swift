@@ -118,8 +118,8 @@ struct AcronymsController: RouteCollection {
   func deleteCategoryHandler(_ req: Request) throws -> Future<HTTPStatus> {
     return try flatMap(to: HTTPStatus.self, req.parameters.next(Acronym.self), req.parameters.next(Category.self)) { acronym, category in
       try AcronymCategoryPivot.query(on: req)
-        .filter(\.acronymID == acronym.id)
-        .filter(\.categoryID == category.id)
+        .filter(\.acronymID == acronym.requireID())
+        .filter(\.categoryID == category.requireID())
         .delete()
         .transform(to: HTTPStatus.ok)
     }

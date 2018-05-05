@@ -280,7 +280,7 @@ struct WebsiteController: RouteCollection {
   func deleteCategoryHandler(_ req: Request) throws -> Future<Response> {
     return try req.parameters.next(Category.self).flatMap(to: Response.self) { category in
       return try AcronymCategoryPivot.query(on: req)
-        .filter(\.categoryID == category.id)
+        .filter(\.categoryID == category.requireID())
         .delete()
         .flatMap(to: Response.self) {
           category.delete(on: req)
