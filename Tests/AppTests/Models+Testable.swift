@@ -1,13 +1,26 @@
 @testable import App
 import FluentPostgreSQL
+import Crypto
 
 extension User {
-  static func create(name: String = "Luke",
-                     username: String = "lukes",
-                     on connection: PostgreSQLConnection) throws
-    -> User {
-      let user = User(name: name, username: username)
-      return try user.save(on: connection).wait()
+  static func create(
+    name: String = "Luke",
+    username: String? = nil,
+    on connection: PostgreSQLConnection) throws -> User {
+    var createUsername: String
+    // 2
+    if let suppliedUsername = username {
+      createUsername = suppliedUsername
+      // 3
+    } else {
+      createUsername = UUID().uuidString
+    }
+    
+    // 4
+    let password = try BCrypt.hash("password")
+    let user = User(name: name, username: createUsername,
+                    password: password)
+    return try user.save(on: connection).wait()
   }
 }
 
@@ -30,10 +43,10 @@ extension Acronym {
   }
 }
 
-extension Category {
+extension App.Category {
   static func create(name: String = "Random",
                      on connection: PostgreSQLConnection) throws
-    -> Category {
+    -> App.Category {
       let category = Category(name: name)
       return try category.save(on: connection).wait()
   }

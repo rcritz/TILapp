@@ -27,27 +27,38 @@
 /// THE SOFTWARE.
 
 import Vapor
+import Crypto
 
 struct UsersController: RouteCollection {
   func boot(router: Router) throws {
     let usersRoute = router.grouped("api", "users")
-    usersRoute.post(User.self, use: createHandler)
     usersRoute.get(use: getAllHandler)
     usersRoute.get(User.parameter, use: getHandler)
     usersRoute.get(User.parameter, "acronyms", use: getAcronymsHandler)
-    usersRoute.delete(User.parameter, use: deleteHandler)
+    
+    let basicAuthMiddleware = User.basicAuthMiddleware(using: BCryptDigest())
+    let basicAuthGroup = usersRoute.grouped(basicAuthMiddleware)
+    basicAuthGroup.post("login", use: loginHandler)
+
+    let tokenAuthMiddleware = User.tokenAuthMiddleware()
+    let guardAuthMiddleware = User.guardAuthMiddleware()
+    let tokenAuthGroup = usersRoute.grouped(tokenAuthMiddleware,
+                                            guardAuthMiddleware)
+    tokenAuthGroup.post(User.self, use: createHandler)
+    tokenAuthGroup.delete(User.parameter, use: deleteHandler)
   }
 
-  func createHandler(_ req: Request, user: User) throws -> Future<User> {
-    return user.save(on: req)
+  func createHandler(_ req: Request, user: User) throws -> Future<User.Public> {
+    user.password = try BCrypt.hash(user.password)
+    return user.save(on: req).convertToPublic()
   }
 
-  func getAllHandler(_ req: Request) throws -> Future<[User]> {
-    return User.query(on: req).all()
+  func getAllHandler(_ req: Request) throws -> Future<[User.Public]> {
+    return User.query(on: req).decode(User.Public.self).all()
   }
 
-  func getHandler(_ req: Request) throws -> Future<User> {
-    return try req.parameters.next(User.self)
+  func getHandler(_ req: Request) throws -> Future<User.Public> {
+    return try req.parameters.next(User.self).convertToPublic()
   }
 
   func getAcronymsHandler(_ req: Request) throws -> Future<[Acronym]> {
@@ -55,7 +66,16 @@ struct UsersController: RouteCollection {
       try user.acronyms.query(on: req).all()
     }
   }
-  
+
+  func loginHandler(_ req: Request) throws -> Future<Token> {
+    // 2
+    let user = try req.requireAuthenticated(User.self)
+    // 3
+    let token = try Token.generate(for: user)
+    // 4
+    return token.save(on: req)
+  }
+
   func deleteHandler(_ req: Request) throws -> Future<HTTPStatus> {
     return try req.parameters.next(User.self).delete(on: req).transform(to: HTTPStatus.noContent)
   }
