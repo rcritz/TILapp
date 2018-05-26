@@ -64,11 +64,8 @@ extension User.Public: Content {}
 extension User: Migration {
   static func prepare(on connection: PostgreSQLConnection)
     -> Future<Void> {
-      // 1
       return Database.create(self, on: connection) { builder in
-        // 2
         try addProperties(to: builder)
-        // 3
         try builder.addIndex(to: \.username, isUnique: true)
       }
   }
@@ -81,56 +78,45 @@ extension User {
 }
 
 extension User {
-  // 1
   func convertToPublic() -> User.Public {
-    // 2
     return User.Public(id: id, name: name, username: username)
   }
 }
 
 extension Future where T: User {
-  // 2
   func convertToPublic() -> Future<User.Public> {
-    // 3
     return self.map(to: User.Public.self) { user in
-      // 4
       return user.convertToPublic()
     }
   }
 }
 
 extension User: BasicAuthenticatable {
-  // 2
   static let usernameKey: UsernameKey = \User.username
-  // 3
   static let passwordKey: PasswordKey = \User.password
 }
 
 extension User: TokenAuthenticatable {
-  // 2
   typealias TokenType = Token
 }
 
+extension User: PasswordAuthenticatable {}
+extension User: SessionAuthenticatable {}
+
 struct AdminUser: Migration {
-  // 2
   typealias Database = PostgreSQLDatabase
   
-  // 3
   static func prepare(on connection: PostgreSQLConnection)
     -> Future<Void> {
-      // 4
       let password = try? BCrypt.hash("password")
       guard let hashedPassword = password else {
         fatalError("Failed to create admin user")
       }
-      // 5
       let user = User(name: "Admin", username: "admin",
                       password: hashedPassword)
-      // 6
       return user.save(on: connection).transform(to: ())
   }
   
-  // 7
   static func revert(on connection: PostgreSQLConnection) -> Future<Void> {
 //    do {
 //      return try User.query(on: connection)
