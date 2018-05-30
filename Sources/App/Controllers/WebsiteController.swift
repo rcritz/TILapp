@@ -15,7 +15,9 @@ struct WebsiteController: RouteCollection {
     authSessionRoutes.get("login", use: loginHandler)
     authSessionRoutes.post(LoginPostData.self, at: "login", use: loginPostHandler)
     authSessionRoutes.post("logout", use: logoutHandler)
-    
+    authSessionRoutes.get("register", use: registerHandler)
+    authSessionRoutes.post(RegisterData.self, at: "register", use: registerPostHandler)
+
     let protectedRoutes = authSessionRoutes.grouped(RedirectMiddleware<User>(path: "/login"))
     protectedRoutes.get("acronyms", "create", use: createAcronymHandler)
     protectedRoutes.post(CreateAcronymData.self, at: "acronyms", "create", use: createAcronymPostHandler)
@@ -125,7 +127,9 @@ struct WebsiteController: RouteCollection {
     return try req.parameters.next(Acronym.self)
       .flatMap(to: View.self) { acronym in
         let categories = try acronym.categories.query(on: req).all()
-        let context = EditAcronymContext(acronym: acronym, categories: categories)
+        let token = try CryptoRandom().generateData(count: 16).base64EncodedString()
+        let context = EditAcronymContext(acronym: acronym, categories: categories, csrfToken: token)
+        try req.session()["CSRF_TOKEN"] = token
         return try req.view().render("createAcronym", context)
     }
   }
@@ -165,6 +169,12 @@ struct WebsiteController: RouteCollection {
           acronym.short = data.short
           acronym.long = data.long
           acronym.userID = try user.requireID()
+          
+          let expectedToken = try req.session()["CSRF_TOKEN"]
+          try req.session()["CSRF_TOKEN"] = nil
+          guard expectedToken == data.csrfToken else {
+            throw Abort(.badRequest)
+          }
           
           return acronym.save(on: req).flatMap(to: Response.self) { savedAcronym in
             guard let id = savedAcronym.id else {
@@ -248,6 +258,40 @@ struct WebsiteController: RouteCollection {
     try req.unauthenticateSession(User.self)
     return req.redirect(to: "/")
   }
+
+  func registerHandler(_ req: Request) throws -> Future<View> {
+    let context: RegisterContext
+    if let message = req.query[String.self, at: "message"] {
+      context = RegisterContext(message: message)
+    } else {
+      context = RegisterContext()
+    }
+    return try req.view().render("register", context)
+  }
+
+  func registerPostHandler(_ req: Request, data: RegisterData) throws -> Future<Response> {
+    do {
+      try data.validate()
+    } catch (let error) {
+      let redirect: String
+      if let error = error as? ValidationError,
+        let message = error.reason.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) {
+        redirect = "/register?message=\(message)"
+      } else {
+        redirect = "/register?message=Unknown+error"
+      }
+      return Future.map(on: req) {
+        req.redirect(to: redirect)
+      }
+    }
+
+    let password = try BCrypt.hash(data.password)
+    let user = User(name: data.name, username: data.username, password: password)
+    return user.save(on: req).map(to: Response.self) { user in
+      try req.authenticateSession(user)
+      return req.redirect(to: "/")
+    }
+  }
 }
 
 struct IndexContext: Encodable {
@@ -296,6 +340,7 @@ struct EditAcronymContext: Encodable {
   let acronym: Acronym
   let editing = true
   let categories: Future<[Category]>
+  let csrfToken: String
 }
 
 struct CreateAcronymData: Content {
@@ -317,4 +362,35 @@ struct LoginContext: Encodable {
 struct LoginPostData: Content {
   let username: String
   let password: String
+}
+
+struct RegisterContext: Encodable {
+  let title = "Register"
+  let message: String?
+
+  init(message: String? = nil) {
+    self.message = message
+  }
+}
+
+struct RegisterData: Content {
+  let name: String
+  let username: String
+  let password: String
+  let confirmPassword: String
+}
+
+extension RegisterData: Validatable, Reflectable {
+  static func validations() throws -> Validations<RegisterData> {
+    var validations = Validations(RegisterData.self)
+    try validations.add(\.name, .ascii)
+    try validations.add(\.username, .alphanumeric && .count(3...))
+    try validations.add(\.password, .count(8...))
+    validations.add("passwords match") { model in
+      guard model.password == model.confirmPassword else {
+        throw BasicValidationError("passwords don't match")
+      }
+    }
+    return validations
+  }
 }
