@@ -66,7 +66,7 @@ extension User: Migration {
     -> Future<Void> {
       return Database.create(self, on: connection) { builder in
         try addProperties(to: builder)
-        try builder.addIndex(to: \.username, isUnique: true)
+        builder.unique(on: \.username)
       }
   }
 }

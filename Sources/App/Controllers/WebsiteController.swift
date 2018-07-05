@@ -28,7 +28,7 @@ struct WebsiteController: RouteCollection {
   }
   
   func indexHandler(_ req: Request) throws -> Future<View> {
-    return try Acronym.query(on: req)
+    return Acronym.query(on: req)
       .sort(\.short, .ascending)
       .all()
       .flatMap(to: View.self) { acronyms in
@@ -44,7 +44,7 @@ struct WebsiteController: RouteCollection {
   func acronymHandler(_ req: Request) throws -> Future<View> {
     return try req.parameters.next(Acronym.self)
       .flatMap(to: View.self) { acronym in
-        return try acronym.user
+        return acronym.user
           .get(on: req)
           .flatMap(to: View.self) { user in
             let categories = try acronym.categories.query(on: req).all()

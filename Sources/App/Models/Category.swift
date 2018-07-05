@@ -52,7 +52,7 @@ extension Category {
                           on req: Request) throws
     -> Future<Void> {
       // 1
-      return try Category.query(on: req)
+      return Category.query(on: req)
         .filter(\.name == name)
         .first()
         .flatMap(to: Void.self) { foundCategory in

@@ -100,9 +100,9 @@ struct AcronymsController: RouteCollection {
     guard let searchTerm = req.query[String.self, at: "term"] else {
       throw Abort(.badRequest)
     }
-    return try Acronym.query(on: req).group(.or) { or in
-      try or.filter(\.short == searchTerm)
-      try or.filter(\.long == searchTerm)
+    return Acronym.query(on: req).group(.or) { or in
+      or.filter(\.short == searchTerm)
+      or.filter(\.long == searchTerm)
     }.all()
   }
 
@@ -116,7 +116,7 @@ struct AcronymsController: RouteCollection {
   }
 
   func sortedHandler(_ req: Request) throws -> Future<[Acronym]> {
-    return try Acronym.query(on: req).sort(\.short, .ascending).all()
+    return Acronym.query(on: req).sort(\.short, .ascending).all()
   }
 
   func getUserHandler(_ req: Request) throws -> Future<User.Public> {
@@ -124,7 +124,7 @@ struct AcronymsController: RouteCollection {
       return try req.parameters.next(Acronym.self)
         .flatMap(to: User.Public.self) { acronym in
           // 3
-          try acronym.user.get(on: req).convertToPublic()
+          acronym.user.get(on: req).convertToPublic()
       }
   }
 
