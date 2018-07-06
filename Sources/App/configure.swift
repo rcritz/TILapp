@@ -52,7 +52,6 @@ public func configure(
   // Register middleware
   var middlewares = MiddlewareConfig() // Create _empty_ middleware config
   middlewares.use(FileMiddleware.self) // Serves files from `Public/` directory
-//  middlewares.use(DateMiddleware.self) // Adds `Date` header to responses
   middlewares.use(ErrorMiddleware.self) // Catches errors and converts to HTTP response
   middlewares.use(SessionsMiddleware.self)
   services.register(middlewares)
@@ -63,7 +62,7 @@ public func configure(
   let username = Environment.get("DATABASE_USER") ?? "vapor"
   let databaseName: String
   let databasePort: Int
-  // 1
+
   if (env == .testing) {
     databaseName = "vapor-test"
     if let testPort = Environment.get("DATABASE_PORT") {
@@ -84,8 +83,12 @@ public func configure(
     username: username,
     database: databaseName,
     password: password)
+
   let database = PostgreSQLDatabase(config: databaseConfig)
   databases.add(database: database, as: .psql)
+  if env == .development {
+//    databases.enableLogging(on: .psql)
+  }
   services.register(databases)
 
   // Configure migrations
@@ -95,14 +98,11 @@ public func configure(
   migrations.add(model: Category.self, database: .psql)
   migrations.add(model: AcronymCategoryPivot.self, database: .psql)
   migrations.add(model: Token.self, database: .psql)
-//  migrations.add(migration: AdminUser.self, database: .psql)
-//  migrations.add(migration: AddTwitterURLToUsers.self, database: .psql)
-//  migrations.add(migration: MakeCategoriesUnique.self, database: .psql)
+  migrations.add(migration: AddTwitterURLToUsers.self, database: .psql)
+  migrations.add(migration: MakeCategoriesUnique.self, database: .psql)
   switch env {
   case .development, .testing:
     migrations.add(migration: AdminUser.self, database: .psql)
-  case .production:
-    migrations.add(migration: AddTwitterURLToUsers.self, database: .psql)
   default:
     break
   }
