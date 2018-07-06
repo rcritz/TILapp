@@ -35,8 +35,9 @@ import Fluent
 /// [Learn More →](https://docs.vapor.codes/3.0/getting-started/structure/#routesswift)
 public func routes(_ router: Router) throws {
   // Basic "Hello, world!" example
-  router.get("hello") { req in
-    return "Hello, world!"
+  router.get("hello") { req -> String in
+    let env = try! Environment.detect()
+    return "Hello, world! Running as \(env.name)"
   }
 
   let acronymsController = AcronymsController()
