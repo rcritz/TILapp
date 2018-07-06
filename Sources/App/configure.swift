@@ -95,8 +95,17 @@ public func configure(
   migrations.add(model: Category.self, database: .psql)
   migrations.add(model: AcronymCategoryPivot.self, database: .psql)
   migrations.add(model: Token.self, database: .psql)
-  migrations.add(migration: AdminUser.self, database: .psql)
-  migrations.add(migration: AddTwitterURLToUsers.self, database: .psql)
+//  migrations.add(migration: AdminUser.self, database: .psql)
+//  migrations.add(migration: AddTwitterURLToUsers.self, database: .psql)
+//  migrations.add(migration: MakeCategoriesUnique.self, database: .psql)
+  switch env {
+  case .development, .testing:
+    migrations.add(migration: AdminUser.self, database: .psql)
+  case .production:
+    migrations.add(migration: AddTwitterURLToUsers.self, database: .psql)
+  default:
+    break
+  }
   services.register(migrations)
 
   // Configure the rest of your application here
