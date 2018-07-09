@@ -221,16 +221,21 @@ struct WebsiteController: RouteCollection {
       .transform(to: req.redirect(to: "/"))
   }
   
+//  func deleteCategoryHandler(_ req: Request) throws -> Future<Response> {
+//    return try req.parameters.next(Category.self).flatMap(to: Response.self) { category in
+//      return try AcronymCategoryPivot.query(on: req)
+//        .filter(\.categoryID == category.requireID())
+//        .delete()
+//        .flatMap(to: Response.self) {
+//          category.delete(on: req)
+//            .transform(to: req.redirect(to: "/categories"))
+//      }
+//    }
+//  }
+  
   func deleteCategoryHandler(_ req: Request) throws -> Future<Response> {
-    return try req.parameters.next(Category.self).flatMap(to: Response.self) { category in
-      return try AcronymCategoryPivot.query(on: req)
-        .filter(\.categoryID == category.requireID())
-        .delete()
-        .flatMap(to: Response.self) {
-          category.delete(on: req)
-            .transform(to: req.redirect(to: "/categories"))
-      }
-    }
+    return try req.parameters.next(Category.self).delete(on: req)
+      .transform(to: req.redirect(to: "/categories"))
   }
   
   func loginHandler(_ req: Request) throws -> Future<View> {
