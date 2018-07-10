@@ -30,7 +30,7 @@ import FluentPostgreSQL
 import Foundation
 import Vapor
 
-final class AcronymCategoryPivot: PostgreSQLUUIDPivot {
+final class AcronymCategoryPivot: PostgreSQLUUIDPivot, ModifiablePivot {
   var id: UUID?
   var acronymID: Acronym.ID
   var categoryID: Category.ID
@@ -40,9 +40,9 @@ final class AcronymCategoryPivot: PostgreSQLUUIDPivot {
   static let leftIDKey: LeftIDKey = \.acronymID
   static let rightIDKey: RightIDKey = \.categoryID
 
-  init(_ acronymID: Acronym.ID, _ categoryID: Category.ID) {
-    self.acronymID = acronymID
-    self.categoryID = categoryID
+  init(_ acronym: Acronym, _ category: Category) throws {
+    self.acronymID = try acronym.requireID()
+    self.categoryID = try category.requireID()
   }
 }
 

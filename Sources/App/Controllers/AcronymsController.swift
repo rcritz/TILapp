@@ -130,8 +130,7 @@ struct AcronymsController: RouteCollection {
 
   func addCategoriesHandler(_ req: Request) throws -> Future<HTTPStatus> {
     return try flatMap(to: HTTPStatus.self, req.parameters.next(Acronym.self), req.parameters.next(Category.self)) { acronym, category in
-      let pivot = try AcronymCategoryPivot(acronym.requireID(), category.requireID())
-      return pivot.save(on: req).transform(to: .created)
+      return acronym.categories.attach(category, on: req).transform(to: .created)
     }
   }
 
@@ -143,11 +142,7 @@ struct AcronymsController: RouteCollection {
   
   func deleteCategoryHandler(_ req: Request) throws -> Future<HTTPStatus> {
     return try flatMap(to: HTTPStatus.self, req.parameters.next(Acronym.self), req.parameters.next(Category.self)) { acronym, category in
-      try AcronymCategoryPivot.query(on: req)
-        .filter(\.acronymID == acronym.requireID())
-        .filter(\.categoryID == category.requireID())
-        .delete()
-        .transform(to: HTTPStatus.ok)
+      return acronym.categories.detach(category, on: req).transform(to: .noContent)
     }
   }
 }
