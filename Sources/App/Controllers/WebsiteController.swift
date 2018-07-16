@@ -249,7 +249,7 @@ struct WebsiteController: RouteCollection {
   }
   
   func loginPostHandler(_ req: Request, userData: LoginPostData) throws -> Future<Response> {
-    return User.authenticate(username: userData.username, password: userData.password, using: BCryptDigest(),on: req)
+    return User.authenticate(username: userData.username, password: userData.password, using: BCryptDigest(), on: req)
       .map(to: Response.self) { user in
         guard let user = user else {
           return req.redirect(to: "/login?error")
@@ -285,9 +285,7 @@ struct WebsiteController: RouteCollection {
       } else {
         redirect = "/register?message=Unknown+error"
       }
-      return Future.map(on: req) {
-        req.redirect(to: redirect)
-      }
+      return req.future(req.redirect(to: redirect))
     }
 
     let password = try BCrypt.hash(data.password)
